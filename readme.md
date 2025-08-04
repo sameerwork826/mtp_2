@@ -186,15 +186,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-**Author**: [Your Name]  
-**Institution**: [Your Institution]  
-**Email**: [your.email@domain.com]  
-**Project Supervisor**: [Supervisor Name]
+**Author**: Sameer Wanjari
+**Institution**: IIT(BHU) Varanasi
+**Email**:sameern.wanjari.cd.phy21@itbhu.ac.in 
+**Project Supervisor**: Dr.Awaneesh Singh
 
 ## Acknowledgments
 
-- LAMMPS development team
-- [Your Institution] High Performance Computing facility
+- IIT(BHU)Varanasi High Performance Computing facility
 - Research group members and collaborators
 
 ---
