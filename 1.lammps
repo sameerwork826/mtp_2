@@ -1,0 +1,127 @@
+# LAMMPS Input Script for Polymer Chain MD Simulation
+# M.Tech Project: Diffusion coefficient and structural properties study
+# Usage: lmp -var datafile data_homo_case1_N12_seed1.lammps -var case 1 -var eps_AB 1.0 -var seed 1 -var outdir results -in simulation.lammps
+
+# Initialize simulation
+units lj
+dimension 3
+boundary p p p
+atom_style full
+
+# Read data file
+read_data ${datafile}
+
+# Define groups
+group typeA type 1
+group typeB type 2
+
+# Pair style and coefficients
+pair_style lj/cut 2.5
+
+# LJ parameters: epsilon=1.0, sigma=1.0 for all interactions except A-B
+pair_coeff 1 1 1.0 1.0 2.5    # A-A interaction
+pair_coeff 2 2 1.0 1.0 2.5    # B-B interaction
+pair_coeff 1 2 ${eps_AB} 1.0 2.5  # A-B interaction (variable)
+
+# Bond style (FENE)
+bond_style fene
+bond_coeff 1 30.0 1.5 1.0 1.0  # K=30, R0=1.5, epsilon=1.0, sigma=1.0
+
+# Special bonds (exclude 1-2 interactions for bonded atoms)
+special_bonds fene
+
+# Electrostatic interactions for charged cases
+if "${case} == 3 || ${case} == 4" then &
+    "pair_style hybrid lj/cut 2.5 coul/cut 10.0" &
+    "pair_coeff 1 1 lj/cut 1.0 1.0 2.5" &
+    "pair_coeff 2 2 lj/cut 1.0 1.0 2.5" &
+    "pair_coeff 1 2 lj/cut ${eps_AB} 1.0 2.5" &
+    "pair_coeff * * coul/cut" &
+    "kspace_style none"
+
+# Neighbor list settings
+neighbor 0.3 bin
+neigh_modify delay 0 every 1 check yes
+
+# Integration settings
+timestep 0.01
+fix integrate all nve/limit 0.1
+
+# Langevin thermostat
+fix langevin all langevin 1.0 1.0 1.0 ${seed}
+
+# Initial velocity
+velocity all create 1.0 ${seed} dist gaussian
+
+# Energy minimization
+minimize 1.0e-4 1.0e-6 1000 10000
+
+# Switch to normal NVE + Langevin
+unfix integrate
+fix integrate all nve
+
+# Equilibration run
+run 50000
+
+# Reset timestep for production
+reset_timestep 0
+
+# Output directory
+shell mkdir -p ${outdir}
+
+# Thermodynamic output
+thermo_style custom step temp pe ke etotal press vol density
+thermo 1000
+thermo_modify flush yes
+
+# Dump configurations
+dump coords all custom 1000 ${outdir}/dump_${case}_N${N}_seed${seed}.lammpstrj &
+     id mol type charge x y z vx vy vz
+
+# Compute mean squared displacement (MSD)
+compute msd_A typeA msd com yes
+compute msd_B typeB msd com yes
+compute msd_all all msd com yes
+
+# Compute radius of gyration (Rg) for each molecule
+compute rg all gyration/molecule
+
+# Compute radial distribution function (RDF)
+compute rdf_AA typeA rdf 100 1 1 cutoff 10.0
+compute rdf_BB typeB rdf 100 2 2 cutoff 10.0
+compute rdf_AB typeA rdf 100 1 2 cutoff 10.0
+
+# Output computed quantities
+fix msd_output all ave/time 100 1 100 &
+    c_msd_A[4] c_msd_B[4] c_msd_all[4] &
+    file ${outdir}/msd_${case}_N${N}_seed${seed}.dat
+
+fix rg_output all ave/time 100 1 100 &
+    c_rg &
+    file ${outdir}/rg_${case}_N${N}_seed${seed}.dat mode vector
+
+fix rdf_output all ave/time 100 10 1000 &
+    c_rdf_AA[*] c_rdf_BB[*] c_rdf_AB[*] &
+    file ${outdir}/rdf_${case}_N${N}_seed${seed}.dat mode vector
+
+# Custom compute for hydrodynamic radius calculation
+# This will be processed in post-analysis
+dump_modify coords format line "%d %d %d %g %g %g %g %g %g %g"
+
+# Production run
+run 200000
+
+# Calculate diffusion coefficients from MSD slope
+# D = MSD/(6*t) for 3D
+variable time_start equal 100000  # Start fitting from this timestep
+variable time_end equal 200000    # End fitting at this timestep
+
+# Output final statistics
+print "Simulation completed for Case ${case}, N=${N}, Seed=${seed}"
+print "Data files written to ${outdir}/"
+
+# Clean up
+undump coords
+unfix msd_output
+unfix rg_output  
+unfix rdf_output
