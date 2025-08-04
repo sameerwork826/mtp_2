@@ -186,10 +186,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-**Author**: Sameer Wanjari
-**Institution**: IIT(BHU) Varanasi
-**Email**:sameern.wanjari.cd.phy21@itbhu.ac.in 
-**Project Supervisor**: Dr.Awaneesh Singh
+**Author**: [Sameer Wanjari]
+**Institution**: [IIT(BHU) Varanasi]
+**Email**:[sameern.wanjari.cd.phy21@itbhu.ac.in]
+**Project Supervisor**: [Dr.Awaneesh Singh]
 
 ## Acknowledgments
 
